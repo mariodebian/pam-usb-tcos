@@ -1,3 +1,9 @@
+pam-usb-tcos (0.4.2-3) unstable; urgency=low
+
+  * Move pamusb-check (bin and man) to libpam-usb-tcos package
+
+ -- Mario Izquierdo (mariodebian) <mariodebian@gmail.com>  Mon, 08 Sep 2008 21:43:58 +0200
+
 pam-usb-tcos (0.4.2-1) unstable; urgency=low
 
   * Initial version
