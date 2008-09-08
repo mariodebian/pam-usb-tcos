@@ -1,0 +1,3 @@
+pam_usb.so lib/security
+doc/pamusb.conf etc/
+pamusb-check usr/bin

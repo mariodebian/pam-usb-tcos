@@ -1,0 +1,35 @@
+Source: pam-usb-tcos
+Section: admin
+Priority: extra
+Maintainer: Mario Izquierdo (mariodebian) <mariodebian@gmail.com>
+Build-Depends: debhelper (>= 5), libpam0g-dev, libdbus-1-dev, libhal-storage-dev, libxml2-dev, pkg-config, libxmlrpc-c3-dev, libxau-dev, libx11-dev, libcurl4-openssl-dev
+Standards-Version: 3.8.0
+Homepage: http://www.pamusb.org/
+
+Package: libpam-usb-tcos
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, pmount, tcos-core
+Provides: libpam-usb
+Replaces: libpam-usb
+Conflicts: libpam-usb
+Description: PAM module for authentication with removable USB block devices
+ pam_usb provides hardware authentication for Linux using ordinary USB
+ Flash Drives. It works with any application supporting PAM, such as su,
+ any login manager (GDM, KDM), etc.
+ .
+ This package is a fork of libpam-usb with remote USB support 
+ for thin clients (TCOS).
+
+Package: pamusb-tools-tcos
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-celementtree, python-gobject, python-dbus, libpam-usb-tcos, hal, dbus
+Provides: pamusb-tools
+Replaces: pamusb-tools
+Conflicts: pamusb-tools
+Description: helper tools for the pam-usb-tcos module
+ This package contains several tools related to the libpam-usb-tcos module
+ including pamusb-agent, pamusb-conf and pamusb-check, which help users
+ to manage the XML-based configuration file and to test their settings.
+ .
+ This package is a fork of pamusb-tools-tcos with remote USB support 
+ for thin clients (TCOS).

@@ -1,0 +1,6 @@
+The original upstream configuration file disables one time pads and
+enables debugging. Debian defaults for this package are to enable
+one time pads (in order to improve randomness and security) and to
+disable debugging in order to prevent floods to the logfiles.
+
+-- José Miguel Parrella Romero <joseparrella at cantv.net>

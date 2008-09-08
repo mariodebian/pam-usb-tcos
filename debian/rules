@@ -1,0 +1,58 @@
+#!/usr/bin/make -f
+
+PKGS = -plibpam-usb-tcos -ppamusb-tools-tcos
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	touch configure-stamp
+
+build: build-stamp
+
+build-stamp: configure-stamp 
+	dh_testdir
+	$(MAKE)
+	touch $@
+
+	gunzip -c doc/pamusb-agent.1.gz > debian/pamusb-agent.1
+	gunzip -c doc/pamusb-check.1.gz > debian/pamusb-check.1
+	gunzip -c doc/pamusb-conf.1.gz > debian/pamusb-conf.1
+
+	sed -i 's/^\."/\.\\"/' debian/*.1
+	sed -i 's/\\fBpamusb-check/\\fBpamusb-check \\fP- simulates pam_usb authentication/' debian/pamusb-check.1
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+	[ ! -f Makefile ] || $(MAKE) clean
+	dh_clean 
+	rm -f debian/pamusb*.1
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+
+binary-indep: build install
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs ChangeLog
+	dh_installdocs $(PKGS)
+	dh_install $(PKGS)
+	dh_installman $(PKGS)
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

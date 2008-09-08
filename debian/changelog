@@ -1,0 +1,60 @@
+pam-usb-tcos (0.4.2-1) unstable; urgency=low
+
+  * Initial version
+  * Fork libpam-usb with TCOS support
+  * Rename packages:
+    - libpam-usb => libpam-usb-tcos
+    - pamusb-tools => pamusb-tools-tcos
+    - Conflicts, Replaces, Provides old package names
+  * Add src/remote.c src/remote.h src/base64.c base64.h:
+    - TCOS remote auth
+  * Add Build Depends libxmlrpc-c3-dev libx11-dev libxau-dev
+  * Install pamusb-check bin and manpage
+  * Update debian/copyright with wpasupplicant and me Copyright
+  * Disable debug in doc/pamusb.conf
+
+ -- Mario Izquierdo (mariodebian) <mariodebian@gmail.com>  Mon, 08 Sep 2008 20:42:39 +0200
+
+libpam-usb (0.4.2-1) unstable; urgency=low
+
+  * New upstream version 0.4.2:
+      - Fixed the ElementTree import statement of pamusb-agent to work with
+        Python 2.5.
+      - Improved the device detection to work with any removable storage
+        device.
+      - Added a workaround for a DBUS bug that prevented pam_usb to work
+        with su.
+      - Disable log outputting if the application doesn't have any tty
+        attached (fixes gksudo and other software).
+  * Missing dependency: pmount (Closes: #442449)
+  * debian/watch fails to report upstream's version (Closes: #450005)
+  * Package description could be improved (Closes: #459315)
+  * Updated Standards-Version, no changes needed.
+  * Changing maintainer email.
+
+ -- Jose Parrella <bureado@debian.org>  Sat, 21 Jun 2008 10:15:51 -0430
+
+libpam-usb (0.4.1-1) unstable; urgency=low
+
+  * New upstream version 0.4.1:
+      - Fixed a security issue related to OpenSSH authentication
+      - Fixed the quiet option (now it is really quiet)
+      - Support for devices without vendor/model information
+  * Upgraded to Standards-Version: 3.7.2.2
+  * Adding dbus, hal and libpam-usb as dependencies for pamusb-tools.
+
+ -- Jose Parrella <joseparrella@cantv.net>  Wed, 15 Aug 2007 10:43:43 -0400
+
+libpam-usb (0.4.0-2) unstable; urgency=low
+
+  * Adding python-dbus as a dependency for pamusb-tools
+   (Closes: #423540)
+
+ -- Jose Parrella <joseparrella@cantv.net>  Sun, 17 Jun 2007 22:03:46 +0100
+
+libpam-usb (0.4.0-1) unstable; urgency=low
+
+  * Initial release (Closes: #420199)
+
+ -- Jose Parrella <joseparrella@cantv.net>  Sat, 21 Apr 2007 10:31:27 -0400
+
