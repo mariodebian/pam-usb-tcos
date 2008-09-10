@@ -28,6 +28,7 @@ char *getenv(const char *name);
 #define BIGBUF  2048
 
 #define PUSB_REMOTE_EMPTY ""
+#define PUSB_REMOTE_CRITICAL "critical"
 #define PUSB_NO_COOKIE "error: no cookie"
 #define XMLRPC_OK "ok"
 #define XMLRPC_EMPTY ""

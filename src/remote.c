@@ -115,23 +115,23 @@ char *get_cookie(char *ipstr, char *service) {
 	
 
 	if (!(dpy = XOpenDisplay(NULL))) {
-		log_info("Cannot open X display.\n");
-		return PUSB_REMOTE_EMPTY;
+		log_error("Cannot open X display.\n");
+		return PUSB_REMOTE_CRITICAL;
 	}
 
 	root = RootWindow(dpy, DefaultScreen(dpy));
 	comm_atom = XInternAtom(dpy, "LTSPFS_TOKEN", False);
 
 	if (comm_atom == None) {
-		log_info("Couldn't allocate atom\n");
-		return PUSB_REMOTE_EMPTY;
+		log_error("Couldn't allocate atom\n");
+		return PUSB_REMOTE_CRITICAL;
 	}
 
 	res = XGetWindowProperty(dpy, root, comm_atom, 0, 512, 0, XA_STRING,
 							&type, &format, &nitems, &nleft,
 							(unsigned char **)&buf);
 	if (res != Success || type != XA_STRING) {
-		log_info("Couldn't read LTSPFS_TOKEN atom.\n");
+		log_error("Couldn't read LTSPFS_TOKEN atom.\n");
 		return PUSB_REMOTE_EMPTY;
 	}
 
@@ -157,19 +157,25 @@ char *xmlrpc_call(char *service, char *ipstr, char *option, char*cmdline) {
 		return PUSB_NO_COOKIE;
 
 	cookie=get_cookie(ipstr, service);
-	if ( strcmp(cookie, "") == 0 ) {
+	if ( (strcmp(option, "initusb") != 0 ) && (strcmp(cookie, PUSB_REMOTE_EMPTY) == 0) ) {
+		log_error("xmlrpc_call() cookie is empty and option != initusb '%s'\n", option);
+		xmlrpc_client_cleanup();
 		return PUSB_NO_COOKIE;
 	}
 
 	resultP = xmlrpc_client_call(&env, url, XMLRPC_METHOD, "(ssss)", option, cmdline, cookie, ipstr);
-	if( die_if_fault_occurred(&env) )
+	if( die_if_fault_occurred(&env) ) {
+		xmlrpc_client_cleanup();
 		return PUSB_NO_COOKIE;
+	}
 
 	log_debug("    xmlrpc_call::called method %s, option=%s\n", XMLRPC_METHOD, option);
 
 	xmlrpc_parse_value(&env, resultP, "s", &result);
-	if( die_if_fault_occurred(&env) )
+	if( die_if_fault_occurred(&env) ) {
+		xmlrpc_client_cleanup();
 		return PUSB_NO_COOKIE;
+	}
 
 	snprintf(xmlrpc_returned_value, BIGBUF, "%s", result);
 	
@@ -270,14 +276,15 @@ int pusb_remote_auth(t_pusb_options *opts, const char *user, char *service)
 	ip=get_ip_address(ip);
 	log_info("Trying to connect to XMLRPC server at %s with port %s\n", ip.ipstr, XMLRPC_PORT );
 	
+	/* read cookie to catch XMLRPC critical errors */
+	if (strcmp ( get_cookie(ip.ipstr, service) , PUSB_REMOTE_CRITICAL) == 0 ) {
+		log_error("Can't get Xorg cookie, critical error.\n");
+		return(0);
+	}
 	
 	/* Init USB, copy cookie in Xorg root window porperty (use LTSPFS_TOKEN) */
 	result=xmlrpc_call(service, ip.ipstr, "initusb", "");
 	log_debug("initusb result=%s\n", result);
-	if ( strcmp(result, PUSB_NO_COOKIE) == 0 ) {
-		log_error("pusb_remote_auth() error no remote cookie\n");
-		return (0);
-	}
 
 
 	/* Mount USB remote UUID if found */

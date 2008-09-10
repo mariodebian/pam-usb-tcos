@@ -1,3 +1,11 @@
+pam-usb-tcos (0.4.2.1tcos-1) unstable; urgency=low
+
+  * src/remote.c src/remote.c~ src/remote.h
+    - Make open DISPLAY as critical failure
+    - Clean xmlrpc connection when critical failure happens
+
+ -- Mario Izquierdo (mariodebian) <mariodebian@gmail.com>  Wed, 10 Sep 2008 15:16:09 +0200
+
 pam-usb-tcos (0.4.2-3) unstable; urgency=low
 
   * Move pamusb-check (bin and man) to libpam-usb-tcos package
