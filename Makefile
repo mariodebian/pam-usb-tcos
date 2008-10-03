@@ -74,7 +74,7 @@ remote:
 
 clean		:
 		$(RM) -f $(PAM_USB) $(PAMUSB_CHECK) $(OBJS) $(PAMUSB_CHECK_OBJS) $(PAM_USB_OBJS) remote
-		$(RM) -f src/*~
+		$(RM) -f src/*~ tools/*~ tools/*gladep tools/*bak
 
 install		: all
 		$(MKDIR) -p $(CONFS_DEST) $(DOCS_DEST) $(MANS_DEST) $(TOOLS_DEST) $(PAM_USB_DEST)

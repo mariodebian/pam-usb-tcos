@@ -34,6 +34,135 @@ except ImportError:
 	except ImportError:
 		import elementtree.ElementTree as et
 
+import xmlrpclib
+from subprocess import Popen, PIPE, STDOUT
+from threading import Thread
+from time import sleep
+STOP=False
+
+gobject.threads_init()
+
+
+class RemoteObserver ( Thread ):
+	def __init__(self, conn, args, callback):
+		Thread.__init__(self)
+		self.conn=conn
+		self.args=args
+		self.callback=callback
+		
+		
+		self.status=False
+		self.orig_status=True
+		# False == off
+		# True  == on
+		logger.debug("RemoteObserver() __init__ args=%s"%args)
+
+
+	def run ( self ):
+		first=True
+		logger.debug("RemoteObserver() run()")
+		while not STOP:
+			try:
+				status=self.conn.tcos.pamusb("checkuuid", self.args['uuid'], self.args['cookie'], self.args['ip'])
+			except Exception, err:
+				logger.error("Exception in RemoteObserver thread: '%s'"%err)
+				continue
+			#logger.debug("RemoteObserver() status=%s"%status)
+			if status == "on":
+				self.status=True
+			elif status == "off":
+				self.status=False
+			if first:
+				self.orig_status=self.status
+				first=False
+			if self.orig_status != self.status:
+				self.callback(status)
+				self.orig_status=self.status
+			sleep(1)
+
+class RemoteDevice(object):
+	def __init__(self, serial):
+		self.__udi = None
+		self.__uuid = uuid
+		self.__callbacks = []
+		self.__running = False
+		self.__cookie = None
+	
+
+	def __read_cookie(self):
+		if self.__cookie != None:
+			# return last cookie (cookie in X session don't change)
+			return self.__cookie
+		
+		logger.debug ( "read_cookie() exec \"xauth list\"" )
+		p = Popen(["xauth", "-n", "list"], shell=False, bufsize=0, stdout=PIPE, stderr=STDOUT, close_fds=True)
+		readed=p.stdout.read()
+		readed=readed.split('\n')[0:-1]
+		#logger.debug ( "read_cookie() %s" %readed )
+		for line in readed:
+			if len(line.split()) != 3:
+				continue
+			host, ctype, cookie = line.split()
+			chost=host.split(':')[0]
+			if chost == self.ip:
+				self.__cookie=cookie
+				logger.debug ( "read_cookie() chost=%s HAVE COOKIE => %s" %(chost, cookie) )
+
+
+	def run(self):
+		# read DISPLAY
+		try:
+			self.ip=".".join(os.environ['DISPLAY'].split(':')[0].split('.')[0:4])
+		except Exception, err:
+			logger.error("Can't read DISPLAY, error='%s'"%error)
+			sys.exit(1)
+		
+		self.url="http://%s:8998/RPC2"%self.ip
+		
+		try:
+			self.conn = xmlrpclib.ServerProxy(self.url,verbose=False)
+			logger.debug("XMLRPC connected, version '%s'"%self.conn.tcos.version() )
+		except Exception, err:
+			logger.error("Can't connect to XMLRPC on %s, error='%s'" %(self.ip, err) )
+			sys.exit(1)
+		
+		logger.debug("RemoteDevice() __init__ IP=%s URL=%s"%(self.ip, self.url) )
+		
+		self.__read_cookie()
+		if not self.__cookie:
+			logger.error("Can't read Xorg cookie")
+			sys.exit(1)
+		
+		th=RemoteObserver(self.conn, {'ip':self.ip, 'cookie':self.__cookie, 'uuid':self.__uuid}, self.changeStatus)
+		th.start()
+		
+		gobject.MainLoop().run()
+		print 'signals registered'
+
+
+	def changeStatus(self, status):
+		logger.debug("changeStatus() status=%s"%status)
+		if not STOP:
+			if status == "on":
+				[ cb('added') for cb in self.__callbacks ]
+			if status == "off":
+				[ cb('removed') for cb in self.__callbacks ]
+
+	def addCallback(self, callback):
+		logger.debug("Add callback '%s'"%callback)
+		self.__callbacks.append(callback)
+	
+	
+	def __scanDevices(self):
+		# connect to XMLRPC daemon
+		devices = self.conn.tcos.pamusb(self.ip, "cookie", "getdevices", "")
+		
+		#halService = self.__bus.get_object('org.freedesktop.Hal',
+		#		'/org/freedesktop/Hal/Manager')
+		#halManager = dbus.Interface(halService, 'org.freedesktop.Hal.Manager')
+		#for udi in halManager.FindDeviceByCapability('storage'):
+		#	self.__deviceAdded(udi)
+
 class HotPlugDevice:
 	def __init__(self, serial):
 		self.__udi = None
@@ -103,6 +232,10 @@ class Log:
 	def error(self, message):
 		self.__logMessage(syslog.LOG_ERR, message)
 
+	def debug(self, message):
+		if options['debug']:
+			self.__logMessage(syslog.LOG_NOTICE, "[DEBUG] %s"%message)
+
 	def __logMessage(self, priority, message):
 		syslog.syslog(priority, message)
 
@@ -115,13 +248,15 @@ import getopt
 
 try:
 	opts, args = getopt.getopt(sys.argv[1:], "hc:dc:",
-			["help", "config=", "daemon", "check="])
+			["help", "config=", "daemon", "check=", "debug", "user="])
 except getopt.GetoptError:
 	usage()
 
 options = {'configFile' : '/etc/pamusb.conf',
 		'daemon' : False,
-		'check' : '/usr/bin/pamusb-check'}
+		'check' : '/usr/bin/pamusb-check',
+		'debug': False, 
+		'user': pwd.getpwuid(os.getuid())[0]}
 
 if len(args) != 0:
 	usage()
@@ -135,6 +270,10 @@ for o, a in opts:
 		options['daemon'] = True
 	if o in ('-c', '--check'):
 		options['check'] = a
+	if o in ('-d', '--debug'):
+		options['debug'] = True
+	if o in ('-c', '--user'):
+		options['user'] = a
 
 
 if not os.path.exists(options['check']):
@@ -142,7 +281,7 @@ if not os.path.exists(options['check']):
 	print "You might specify manually pamusb-check's location using --check."
 	usage()
 
-username = pwd.getpwuid(os.getuid())[0]
+username = options['user']
 
 logger = Log()
 
@@ -168,12 +307,17 @@ deviceName = user.find('device').text.strip()
 devices = doc.findall("devices/device")
 for device in devices:
 	if device.get('id') == deviceName:
+		logger.debug("device.model       ='%s'"%device.find('model').text.strip().replace(' ', '_') )
+		logger.debug("device.serial      ='%s'"%device.find('serial').text.strip().replace(' ', '_') )
+		logger.debug("device.vendor      ='%s'"%device.find('vendor').text.strip().replace(' ', '_') )
+		logger.debug("device.volume_uuid ='%s'"%device.find('volume_uuid').text.strip().replace(' ', '_') )
 		break
 else:
-	logger.error('Device %s not found in configurtion file' % deviceName)
+	logger.error('Device %s not found in configuration file' % deviceName)
 	sys.exit(1)
 
 serial = device.find('serial').text.strip()
+uuid  = device.find('volume_uuid').text.strip()
 
 def authChangeCallback(event):
 	if event == 'removed':
@@ -201,8 +345,13 @@ def authChangeCallback(event):
 		logger.info('Authentication failed for device %s. ' \
 				'Keeping user "%s" locked down.' % (deviceName, username))
 
-hpDev = HotPlugDevice(serial)
-hpDev.addCallback(authChangeCallback)
+if os.environ.has_key("DISPLAY") and len(os.environ['DISPLAY'].split('.')) < 4:
+	hpDev = HotPlugDevice(serial)
+	hpDev.addCallback(authChangeCallback)
+else:
+	# use XMLRPC intead of dbus+hal
+	hpDev = RemoteDevice(uuid)
+	hpDev.addCallback(authChangeCallback)
 
 if options['daemon'] and os.fork():
 	sys.exit(0)
@@ -213,4 +362,5 @@ logger.info('Watching device "%s" for user "%s"' % (deviceName, username))
 try:
 	hpDev.run()
 except KeyboardInterrupt:
+	STOP=True
 	logger.error('Caught keyboard interruption, exiting...')

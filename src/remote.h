@@ -20,7 +20,7 @@
 # define PUSB_REMOTE_H_
 
 int pusb_remote_login(t_pusb_options *opts, const char *user);
-int pusb_remote_auth(t_pusb_options *opts, const char *user, char *service);
+int pusb_remote_auth(t_pusb_options *opts, const char *user);
 
 char *getenv(const char *name);
 
@@ -40,6 +40,6 @@ struct ip_address {
 };
 
 #define XMLRPC_PORT "8998"
-#define XMLRPC_METHOD "tcos.pam-usb"
+#define XMLRPC_METHOD "tcos.pamusb"
 
 #endif /* !PUSB_REMOTE_H_ */

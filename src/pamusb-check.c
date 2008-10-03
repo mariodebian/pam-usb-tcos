@@ -61,7 +61,7 @@ static int pusb_check_perform_authentication(t_pusb_options *opts,
 	if (pusb_remote_login(opts, user))
 	{
 		log_debug("Remote access.\n");
-		if ( pusb_remote_auth(opts, user, (char*) service) ) {
+		if ( pusb_remote_auth(opts, user) ) {
 			log_info("Remote access granted.\n");
 			return (1);
 		}

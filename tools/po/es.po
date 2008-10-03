@@ -1,0 +1,169 @@
+# Spanish translations for pamusb-conf-gui package
+# Traducciones al español para el paquete pamusb-conf-gui.
+# Copyright (C) 2008 pamusb-conf-gui
+# This file is distributed under the same license as the pamusb-conf-gui package.
+# mario <mariodebian@gmail.com>, 2008.
+# mario <mariodebian@gmail.com>, 2008.
+# 
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: pamusb-conf-gui 0.4.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-10-02 19:34+0200\n"
+"PO-Revision-Date: 2008-10-02 19:40+0200\n"
+"Last-Translator: Mario Izquierdo (mariodebian) <mariodebian@gmail.com>\n"
+"Language-Team: Spanish/Spain <es@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);"
+
+#: ../pamusb-conf-gui.py:113
+msgid "Username"
+msgstr "Usuario"
+
+#: ../pamusb-conf-gui.py:119
+msgid "Attached device"
+msgstr "Dispositivos registrados"
+
+#: ../pamusb-conf-gui.py:136
+msgid "Device Name"
+msgstr "Nombre del dispositivo"
+
+#: ../pamusb-conf-gui.py:142
+msgid "Volume UUID"
+msgstr "UUID de partición"
+
+#: ../pamusb-conf-gui.py:159
+msgid "Model"
+msgstr "Modelo"
+
+#: ../pamusb-conf-gui.py:165
+msgid "Vendor"
+msgstr "Fabricante"
+
+#: ../pamusb-conf-gui.py:171
+msgid "Serial"
+msgstr "Num. serie"
+
+#: ../pamusb-conf-gui.py:177
+msgid "Volumes"
+msgstr "Particiones"
+
+#: ../pamusb-conf-gui.py:319 ../pamusb-conf-gui.py:349
+#: ../pamusb-conf-gui.py:383 ../pamusb-conf-gui.py:411
+#, python-format
+msgid ""
+"Can't save to file '%s'.\n"
+"\n"
+"Are you root?"
+msgstr ""
+"No se pudo guardar en '%s'.\n"
+"\n"
+"¿Eres administrador?"
+
+#: ../pamusb-conf-gui.py:488
+msgid ""
+"No devices registered.\n"
+"\n"
+"Please register at least one device."
+msgstr ""
+"No hay dispositivos registrados.\n"
+"\n"
+"Por favor, registre al menos un dispositivo."
+
+#: ../pamusb-conf-gui.py:508
+msgid ""
+"No device selected.\n"
+"\n"
+"Please select a device from left list."
+msgstr ""
+"No se ha seleccionado ningun dispositivo.\n"
+"\n"
+"Por favor seleccione uno de la lista izquierda."
+
+#: ../pamusb-conf-gui.py:558
+msgid "No name, please give a name."
+msgstr "No se ha indicado nombre, por favor proporcione uno."
+
+#: ../pamusb-conf-gui.glade:10
+msgid "PAM USB Configuration"
+msgstr "Configuración PAM USB"
+
+#: ../pamusb-conf-gui.glade:33
+msgid "<span size=\"x-large\">Configure PAM USB user and devices</span>"
+msgstr "<span size=\"x-large\">Configuración de usuarios y dispositivos de PAM USB</span>"
+
+#: ../pamusb-conf-gui.glade:65
+msgid "<b>Devices</b>"
+msgstr "<b>Dispositivos</b>"
+
+#: ../pamusb-conf-gui.glade:90
+msgid "<b>Users</b>"
+msgstr "<b>Uusarios</b>"
+
+#: ../pamusb-conf-gui.glade:264 ../pamusb-conf-gui.glade:438
+msgid "Add"
+msgstr "Añadir"
+
+#: ../pamusb-conf-gui.glade:342 ../pamusb-conf-gui.glade:516
+msgid "Remove"
+msgstr "Borrar"
+
+#: ../pamusb-conf-gui.glade:603
+msgid "Add device"
+msgstr "Añadir dispositivo"
+
+#: ../pamusb-conf-gui.glade:626
+msgid "Avalaible devices"
+msgstr "Dispositivos disponibles"
+
+#: ../pamusb-conf-gui.glade:729
+msgid "Reload devices"
+msgstr "Recargar dispositivos"
+
+#: ../pamusb-conf-gui.glade:807 ../pamusb-conf-gui.glade:1362
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: ../pamusb-conf-gui.glade:885 ../pamusb-conf-gui.glade:1440
+msgid "Select this device"
+msgstr "Seleccionar este dispositivo"
+
+#: ../pamusb-conf-gui.glade:929
+msgid "More than one volume"
+msgstr "Más de una partición"
+
+#: ../pamusb-conf-gui.glade:952
+msgid "<b>To insert device to pam-usb, you need to put a unique name.</b>"
+msgstr "<b>Para registrar un dispositivo en pam-usb, necesita indicar un nombre único</b>"
+
+#: ../pamusb-conf-gui.glade:983
+msgid "Device name:"
+msgstr "Nombre del dispositivo:"
+
+#: ../pamusb-conf-gui.glade:1034
+msgid ""
+"Device have more than one volumes (partitions).\n"
+"Please choose one:"
+msgstr ""
+"El dispositivo tiene más de una partición.\n"
+"Por favor, seleccione una:"
+
+#: ../pamusb-conf-gui.glade:1147
+msgid "Add user"
+msgstr "Añadir usuario"
+
+#: ../pamusb-conf-gui.glade:1170
+msgid "Select a system user and a register device"
+msgstr "Seleccionar un usuario y registrar"
+
+#: ../pamusb-conf-gui.glade:1201
+msgid "Chooser device"
+msgstr "Dispositivo seleccionado"
+
+#: ../pamusb-conf-gui.glade:1259
+msgid "Chooser user"
+msgstr "Seleccionar usuario"
+

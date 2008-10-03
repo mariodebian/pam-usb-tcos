@@ -1,1 +1,6 @@
-tools/*	usr/bin
+tools/pamusb-agent	usr/bin
+tools/pamusb-conf	usr/bin
+debian/tmp/usr/share/pamusb-tools-tcos/* usr/share/pamusb-tools-tcos
+debian/tmp/usr/sbin/pamusb-conf-gui      usr/sbin
+debian/tmp/usr/share/locale/*
+

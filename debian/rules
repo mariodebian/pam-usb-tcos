@@ -21,6 +21,8 @@ build-stamp: configure-stamp
 	sed -i 's/^\."/\.\\"/' debian/*.1
 	sed -i 's/\\fBpamusb-check/\\fBpamusb-check \\fP- simulates pam_usb authentication/' debian/pamusb-check.1
 
+	cd tools && make
+
 clean:
 	dh_testdir
 	dh_testroot
@@ -29,11 +31,15 @@ clean:
 	dh_clean 
 	rm -f debian/pamusb*.1
 
+	cd tools && make clean
+
 install: build
 	dh_testdir
 	dh_testroot
 	dh_clean -k 
 	dh_installdirs
+
+	cd tools && make install DESTDIR=$(CURDIR)/debian/tmp
 
 binary-indep: build install
 

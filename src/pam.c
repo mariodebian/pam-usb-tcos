@@ -82,7 +82,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	if (pusb_remote_login(&opts, user))
 	{
 		log_error("Remote access.\n");
-		if ( pusb_remote_auth(&opts, user, (char*) service) ) {
+		if ( pusb_remote_auth(&opts, user) ) {
 			log_info("Remote access granted.\n");
 			return (PAM_SUCCESS);
 		}

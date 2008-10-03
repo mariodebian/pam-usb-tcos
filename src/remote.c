@@ -105,7 +105,7 @@ int pusb_remote_login(t_pusb_options *opts, const char *user)
 
 /* method inspired in ltspfs.c */
 
-char *get_cookie(char *ipstr, char *service) {
+char *get_cookie(char *ipstr) {
 	Display *dpy;
 	Atom comm_atom, type;
 	Window root;
@@ -140,7 +140,7 @@ char *get_cookie(char *ipstr, char *service) {
 	return buf;
 }
 
-char *xmlrpc_call(char *service, char *ipstr, char *option, char*cmdline) {
+char *xmlrpc_call(char *ipstr, char *option, char*cmdline) {
 	xmlrpc_env env;
 	xmlrpc_value *resultP;
 	char url[512];
@@ -156,7 +156,7 @@ char *xmlrpc_call(char *service, char *ipstr, char *option, char*cmdline) {
 	if( die_if_fault_occurred(&env) )
 		return PUSB_NO_COOKIE;
 
-	cookie=get_cookie(ipstr, service);
+	cookie=get_cookie(ipstr);
 	if ( (strcmp(option, "initusb") != 0 ) && (strcmp(cookie, PUSB_REMOTE_EMPTY) == 0) ) {
 		log_error("xmlrpc_call() cookie is empty and option != initusb '%s'\n", option);
 		xmlrpc_client_cleanup();
@@ -245,7 +245,7 @@ int need_update_pads(t_pusb_options *opts, const char *user, char *padfilename) 
 }
 
 
-int pusb_remote_auth(t_pusb_options *opts, const char *user, char *service)
+int pusb_remote_auth(t_pusb_options *opts, const char *user)
 {
 	/* main auth function */
 	struct ip_address ip;
@@ -277,18 +277,18 @@ int pusb_remote_auth(t_pusb_options *opts, const char *user, char *service)
 	log_info("Trying to connect to XMLRPC server at %s with port %s\n", ip.ipstr, XMLRPC_PORT );
 	
 	/* read cookie to catch XMLRPC critical errors */
-	if (strcmp ( get_cookie(ip.ipstr, service) , PUSB_REMOTE_CRITICAL) == 0 ) {
+	if (strcmp ( get_cookie(ip.ipstr) , PUSB_REMOTE_CRITICAL) == 0 ) {
 		log_error("Can't get Xorg cookie, critical error.\n");
 		return(0);
 	}
 	
 	/* Init USB, copy cookie in Xorg root window porperty (use LTSPFS_TOKEN) */
-	result=xmlrpc_call(service, ip.ipstr, "initusb", "");
+	result=xmlrpc_call(ip.ipstr, "initusb", "");
 	log_debug("initusb result=%s\n", result);
 
 
 	/* Mount USB remote UUID if found */
-	result = xmlrpc_call(service, ip.ipstr, "mountusb", opts->device.volume_uuid);
+	result = xmlrpc_call(ip.ipstr, "mountusb", opts->device.volume_uuid);
 	log_debug("mountusb result=%s\n", result);
 	if ( strcmp(result, XMLRPC_OK) != 0 ) {
 	    log_error("mount USB give error: '%s'\n",result);
@@ -303,7 +303,7 @@ int pusb_remote_auth(t_pusb_options *opts, const char *user, char *service)
 						clear_string(opts->device.vendor),
 						clear_string(opts->device.serial));
 	/* check if vendor, model and serial matchs */
-	result = xmlrpc_call(service, ip.ipstr, "checkdevice", device);
+	result = xmlrpc_call(ip.ipstr, "checkdevice", device);
 	log_debug("checkdevice device='%s' result='%s'\n", device, result);
 	
 	if ( strcmp(result, XMLRPC_OK) != 0 ) {
@@ -315,7 +315,7 @@ int pusb_remote_auth(t_pusb_options *opts, const char *user, char *service)
 	/* file is /mnt/__UUID__/.pamusb/__USER__.__SERVERHOSTNAME__.pad */
 	sprintf( (char*) remotepad, "/mnt/%s/%s/%s.%s.pad", opts->device.volume_uuid, opts->device_pad_directory , user, opts->hostname);
 	log_debug("mountusb remotepad=%s\n", remotepad);
-	result = xmlrpc_call(service, ip.ipstr, "getpad", remotepad);
+	result = xmlrpc_call(ip.ipstr, "getpad", remotepad);
 	if ( strcmp(result, XMLRPC_EMPTY) == 0 ) {
 		log_error("pusb_remote_auth() error no remote base64 PAD\n");
 		return (0);
@@ -404,11 +404,11 @@ int pusb_remote_auth(t_pusb_options *opts, const char *user, char *service)
 		e=base64_encode(buf, len, &elen);
 		snprintf( (char*)base64_remote, BIGBUF, "%s", e);
 		sprintf( (char*) remotepad, "//mnt/%s/%s/%s.%s.pad", opts->device.volume_uuid, opts->device_pad_directory , user, opts->hostname);
-		result = xmlrpc_call(service, ip.ipstr, remotepad, base64_remote);
+		result = xmlrpc_call(ip.ipstr, remotepad, base64_remote);
 		log_debug("Remote pad '%s' saved '%s'\n", remotepad, result);
 	}
 	/* umount device */
-	result = xmlrpc_call(service, ip.ipstr, "umountusb", opts->device.volume_uuid);
+	result = xmlrpc_call(ip.ipstr, "umountusb", opts->device.volume_uuid);
 	log_debug("umount USB result='%s'\n", result);
 	
 	

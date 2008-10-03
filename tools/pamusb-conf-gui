@@ -1,0 +1,983 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2003-2007 Andrea Luzzardi <scox@sig11.org>
+#
+# This file is part of the pam_usb project. pam_usb is free software;
+# you can redistribute it and/or modify it under the terms of the GNU General
+# Public License version 2, as published by the Free Software Foundation.
+#
+# pam_usb is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+# Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+import dbus
+import sys
+import os
+from xml.dom import minidom
+
+import pygtk
+pygtk.require('2.0')
+import gtk
+import gtk.glade
+import gobject
+
+gobject.threads_init()
+
+from gettext import gettext as _
+from gettext import bindtextdomain, textdomain
+from locale import setlocale, LC_ALL
+
+import pickle
+import pwd
+
+def print_debug(txt):
+	if options['verbose']:
+		print "[DEBUG] PamUSBGui::%s" % txt
+
+PACKAGE="pamusb-conf-gui"
+#LOCALE_DIR="./po"
+#GLADE_DIR="./"
+LOCALE_DIR="/usr/share/locale/"
+GLADE_DIR="/usr/share/pamusb-tools-tcos/"
+
+#
+bus = dbus.SystemBus()
+halService = bus.get_object('org.freedesktop.Hal', '/org/freedesktop/Hal/Manager')
+halManager = dbus.Interface(halService, 'org.freedesktop.Hal.Manager')
+#
+
+
+class PamUSBGui(object):
+	def __init__(self):
+		gtk.glade.bindtextdomain(PACKAGE, LOCALE_DIR)
+		gtk.glade.textdomain(PACKAGE)
+
+		# gettext support
+		setlocale( LC_ALL )
+		bindtextdomain( PACKAGE, LOCALE_DIR )
+		textdomain( PACKAGE )
+		print_debug("PamUSBGui __init__")
+		
+		self.ui = gtk.glade.XML(GLADE_DIR + 'pamusb-conf-gui.glade')
+		self.mainwindow = self.ui.get_widget('mainwindow')
+                # FIXME
+		#self.mainwindow.set_icon_from_file(IMG_DIR +'tcos-icon-32x32.png')
+
+		# close windows signals
+		self.mainwindow.connect('destroy', self.quitapp )
+		self.mainwindow.connect('delete_event', self.quitapp)
+		
+		self.adddevicewindow = self.ui.get_widget('adddevicewindow')
+		self.adddevicewindow.connect('destroy', self.__hide )
+		self.adddevicewindow.connect('delete_event', self.__hide)
+		
+		self.volumeswindow = self.ui.get_widget('volumeswindow')
+		self.volumeswindow.connect('destroy', self.__hide )
+		self.volumeswindow.connect('delete_event', self.__hide)
+		
+		self.adduserwindow = self.ui.get_widget('adduserwindow')
+		self.adduserwindow.connect('destroy', self.__hide )
+		self.adduserwindow.connect('delete_event', self.__hide)
+		
+		self.adddevicebutton=self.ui.get_widget('adddevicebutton')
+		self.adddevicebutton.connect('clicked', self.on_adddevicebutton)
+		
+		self.removedevicebutton=self.ui.get_widget('removedevicebutton')
+		self.removedevicebutton.connect('clicked', self.on_removedevicebutton)
+		self.removedevicebutton.set_sensitive(False)
+		
+
+		self.adduserbutton=self.ui.get_widget('adduserbutton')
+		self.adduserbutton.connect('clicked', self.on_adduserbutton)
+		
+		self.removeuserbutton=self.ui.get_widget('removeuserbutton')
+		self.removeuserbutton.connect('clicked', self.on_removeuserbutton)
+		self.removeuserbutton.set_sensitive(False)
+		
+		
+		#
+		#  USER LIST
+		#
+		self.usermodel=gtk.ListStore(str, str, str)
+		self.userlist=self.ui.get_widget("userlist")
+		self.userlist.set_model (self.usermodel)
+		self.userlist.set_rules_hint(True)
+		self.userlist.file = self.userlist.get_selection()
+		self.userlist.file.connect("changed", self.on_userlist_selected)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Username"), cell, text = 0)
+		column.set_resizable (True)
+		column.set_sort_column_id(0)
+		self.userlist.append_column (column)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Attached device"), cell, text = 1)
+		column.set_resizable (True)
+		column.set_sort_column_id(1)
+		self.userlist.append_column (column)
+		
+		#
+		#  DEVICES LIST
+		#
+		self.devmodel=gtk.ListStore(str, str, str)
+		self.devlist=self.ui.get_widget("deviceslist")
+		self.devlist.set_model (self.devmodel)
+		self.devlist.set_rules_hint(True)
+		
+		self.devlist.file = self.devlist.get_selection()
+		self.devlist.file.connect("changed", self.on_devlist_selected)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Device Name"), cell, text = 0)
+		column.set_resizable (True)
+		column.set_sort_column_id(0)
+		self.devlist.append_column (column)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Volume UUID"), cell, text = 1)
+		column.set_resizable (True)
+		column.set_sort_column_id(1)
+		self.devlist.append_column (column)
+		
+		#
+		#  NEW DEVICES LIST
+		#
+		self.newdevmodel=gtk.ListStore(str, str, str, str, str)
+		self.newdevlist=self.ui.get_widget("newdeviceslist")
+		self.newdevlist.set_model (self.newdevmodel)
+		self.newdevlist.set_rules_hint(True)
+		
+		self.newdevlist.file = self.newdevlist.get_selection()
+		self.newdevlist.file.connect("changed", self.on_newdevlist_selected)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Model"), cell, text = 0)
+		column.set_resizable (True)
+		column.set_sort_column_id(0)
+		self.newdevlist.append_column (column)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Vendor"), cell, text = 1)
+		column.set_resizable (True)
+		column.set_sort_column_id(1)
+		self.newdevlist.append_column (column)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Serial"), cell, text = 2)
+		column.set_resizable (True)
+		column.set_sort_column_id(2)
+		self.newdevlist.append_column (column)
+		
+		cell = gtk.CellRendererText ()
+		column = gtk.TreeViewColumn (_("Volumes"), cell, text = 3)
+		column.set_resizable (True)
+		column.set_sort_column_id(3)
+		self.newdevlist.append_column (column)
+		
+		self.newdevicebutton=self.ui.get_widget('newdevicebutton')
+		self.newdevicebutton.connect('clicked', self.on_newdevicebutton)
+		self.newdevicebutton.set_sensitive(False)
+		
+		self.newcancelbutton=self.ui.get_widget('newcancelbutton')
+		self.newcancelbutton.connect('clicked', self.on_newcancelbutton)
+		
+		self.reloaddevicebutton=self.ui.get_widget('reloaddevicebutton')
+		self.reloaddevicebutton.connect('clicked', self.on_reloaddevicebutton)
+		
+		# multi volumes
+		self.combovolumes=self.ui.get_widget('combovolumes')
+		self.combovolumes.__first=True
+		
+		self.volumeokbutton=self.ui.get_widget('volumeokbutton')
+		self.volumeokbutton.connect('clicked', self.on_volumeokbutton)
+		
+		self.volumecancelbutton=self.ui.get_widget('volumecancelbutton')
+		self.volumecancelbutton.connect('clicked', self.on_volumecancelbutton)
+		
+		self.nameentry=self.ui.get_widget('nameentry')
+		self.labelvolumes=self.ui.get_widget('labelvolumes')
+		self.boxvolumes=self.ui.get_widget('boxvolumes')
+		self.labelvolumes.hide()
+		self.boxvolumes.hide()
+		
+		self.combouser=self.ui.get_widget('combouser')
+		self.combouser.__first=True
+		self.txtselecteddevice=self.ui.get_widget('txtselecteddevice')
+		self.newuserbuttoncancel=self.ui.get_widget('newuserbuttoncancel')
+		self.newuserbuttonok=self.ui.get_widget('newuserbuttonok')
+		
+		self.newuserbuttoncancel.connect('clicked', self.on_newuserbuttoncancel)
+		self.newuserbuttonok.connect('clicked', self.on_newuserbuttonok)
+		
+		self.selecteddevice=None
+		
+		self.reload_conf()
+		
+
+	def reload_conf(self):
+		self.read_config()
+		self.usermodel.clear()
+		for user in self.users:
+			self.add_item_to_userlist(user)
+		
+		self.devmodel.clear()
+		for dev in self.devices:
+			self.add_item_to_devlist(dev)
+
+	def read_config(self):
+		try:
+			self.doc = minidom.parse(options['configFile'])
+		except Exception, err:
+			print 'Unable to read %s: %s' % (options['configFile'], err)
+			return False
+		
+		devSection = self.doc.getElementsByTagName('devices')
+		if len(devSection) == 0:
+			print 'Malformed configuration file: No <devices> section found.'
+			return False
+		
+		devicesObj = devSection[0].getElementsByTagName('device')
+		self.devices = []
+		for device in devicesObj:
+			devid=device.getAttribute('id')
+			vendor=device.getElementsByTagName("vendor")[0].childNodes[0].data.strip().replace(' ', '_')
+			model=device.getElementsByTagName("model")[0].childNodes[0].data.strip().replace(' ', '_')
+			serial=device.getElementsByTagName("serial")[0].childNodes[0].data.strip().replace(' ', '_')
+			uuid=device.getElementsByTagName("volume_uuid")[0].childNodes[0].data.strip().replace(' ', '_')
+			self.devices.append({'name':devid, 'vendor':vendor, 'model': model, 'serial': serial, 'uuid':uuid})
+		
+		self.users = []
+		
+		usersSection = self.doc.getElementsByTagName('users')
+		if len(usersSection) == 0:
+			print 'Malformed configuration file: No <users> section found.'
+			return False
+		
+		usersObj = usersSection[0].getElementsByTagName('user')
+		for user in usersObj:
+			userid=user.getAttribute('id')
+			dev=user.getElementsByTagName("device")[0].childNodes[0].data.strip().replace(' ', '_')
+			self.users.append( {'user':userid, 'device':dev} )
+		
+		
+		return True
+
+	def __load_devices(self):
+		self.newdevmodel.clear()
+		if options['remoteHost'] is not None:
+			devices=load_remote_devices()
+		else:
+			load_local_devices()
+		for dev in devices:
+			self.add_item_to_newdevlist(dev)
+	
+#	def __load_users(self):
+#		self.newusermodel.clear()
+#		for user in get_local_users():
+#			self.add_item_to_newuserlist(user)
+
+	def save_new_device(self, newdev):
+		try:
+			doc = minidom.parse(options['configFile'])
+		except Exception, err:
+			print 'Unable to read %s: %s' % (options['configFile'], err)
+			return False
+		
+		devs = doc.getElementsByTagName('devices')
+		dev = doc.createElement('device')
+		dev.attributes['id'] = newdev['name']
+
+		for key in ('vendor', 'model', 'serial', 'volume_uuid'):
+			name=key
+			value=newdev[key]
+			if value is None or value == '':
+				continue
+			e = doc.createElement(name)
+			t = doc.createTextNode(value)
+			e.appendChild(t)
+			dev.appendChild(e)
+
+#		FIXME
+#		# Disable one time pads if there's no device UUID
+#		if volume['uuid'] == '':
+#			e = doc.createElement('option')
+#			e.setAttribute('name', 'one_time_pad')
+#			e.appendChild(doc.createTextNode('false'))
+#			dev.appendChild(e)
+
+		devs[0].appendChild(prettifyElement(dev))
+		if not writeConf(options, doc):
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_ERROR,
+					gtk.BUTTONS_OK,
+					_("Can't save to file '%s'.\n\nAre you root?") %options['configFile'] )
+			d.run()
+			d.destroy()
+			return
+		self.reload_conf()
+
+
+	def save_user_device(self, username, deviceid):
+		try:
+			doc = minidom.parse(options['configFile'])
+		except Exception, err:
+			print 'Unable to read %s: %s' % (options['configFile'], err)
+			return False
+		
+		devs = doc.getElementsByTagName('users')
+		dev = doc.createElement('user')
+		dev.attributes['id'] = username
+
+		e = doc.createElement("device")
+		t = doc.createTextNode(deviceid)
+		e.appendChild(t)
+		dev.appendChild(e)
+
+		devs[0].appendChild(prettifyElement(dev))
+		if not writeConf(options, doc):
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_ERROR,
+					gtk.BUTTONS_OK,
+					_("Can't save to file '%s'.\n\nAre you root?") %options['configFile'] )
+			d.run()
+			d.destroy()
+			return
+		self.reload_conf()
+
+	def remove_user_device(self, delete_devid):
+		found=False
+		try:
+			doc = minidom.parse(options['configFile'])
+		except Exception, err:
+			print 'Unable to read %s: %s' % (options['configFile'], err)
+			return False
+		
+		users = doc.getElementsByTagName('users')
+		devicesObj = users[0].getElementsByTagName('user')
+		for user in devicesObj:
+			userid=user.getAttribute('id')
+			dev = user.getElementsByTagName("device")
+			devid = dev[0].firstChild.data.strip()
+			if delete_devid == devid:
+				found=True
+				print_debug("Found device id '%s' at user '%s', deleting..."%(devid, userid))
+				user.parentNode.removeChild(user)
+		
+		if not found:
+			return
+		
+		if not writeConf(options, doc):
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_ERROR,
+					gtk.BUTTONS_OK,
+					_("Can't save to file '%s'.\n\nAre you root?") %options['configFile'] )
+			d.run()
+			d.destroy()
+			return
+		self.reload_conf()
+
+	def remove_dev(self, deldev):
+		try:
+			doc = minidom.parse(options['configFile'])
+		except Exception, err:
+			print 'Unable to read %s: %s' % (options['configFile'], err)
+			return False
+		
+		devs = doc.getElementsByTagName('devices')
+		devicesObj = devs[0].getElementsByTagName('device')
+		for dev in devicesObj:
+			devid=dev.getAttribute('id')
+			if devid == deldev['name']:
+				print_debug("Found device name '%s', deleting..."%(devid))
+				dev.parentNode.removeChild(dev)
+		
+		if not writeConf(options, doc):
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_ERROR,
+					gtk.BUTTONS_OK,
+					_("Can't save to file '%s'.\n\nAre you root?") %options['configFile'] )
+			d.run()
+			d.destroy()
+			return
+		self.remove_user_device(deldev['name'])
+		self.reload_conf()
+
+
+	def __hide(self, *args):
+		# hide if arg[0] is a gtk.Window()
+		if type(args[0]) == type(gtk.Window()):
+			args[0].hide()
+		# returning true prevents destroying widget
+		return True
+
+	def add_item_to_userlist(self, data):
+		self.iter = self.usermodel.append (None)
+		self.usermodel.set_value (self.iter, 0, data['user'] )
+		self.usermodel.set_value (self.iter, 1, data['device'] )
+		self.usermodel.set_value (self.iter, 2, pickle.dumps(data) )
+
+	def add_item_to_devlist(self, data):
+		self.iter = self.devmodel.append (None)
+		self.devmodel.set_value (self.iter, 0, data['name'] )
+		self.devmodel.set_value (self.iter, 1, data['uuid'] )
+		self.devmodel.set_value (self.iter, 2, pickle.dumps(data) )
+
+	def add_item_to_newdevlist(self, data):
+		self.iter = self.newdevmodel.append (None)
+		self.newdevmodel.set_value (self.iter, 0, data['model'] )
+		self.newdevmodel.set_value (self.iter, 1, data['vendor'] )
+		self.newdevmodel.set_value (self.iter, 2, data['serial'] )
+		self.newdevmodel.set_value (self.iter, 3, len(data['volumes']) )
+		self.newdevmodel.set_value (self.iter, 4, pickle.dumps(data) )
+
+	def on_userlist_selected(self, userlist):
+		(model, iter) = userlist.get_selected()
+		if not iter:
+			self.removeuserbutton.set_sensitive(False)
+			return
+		self.removeuserbutton.set_sensitive(True)
+		self.selecteduser=pickle.loads(model.get_value(iter,2))
+
+	def on_devlist_selected(self, devlist):
+		(model, iter) = devlist.get_selected()
+		if not iter:
+			self.removedevicebutton.set_sensitive(False)
+			self.selecteddevice=None
+			return
+		self.removedevicebutton.set_sensitive(True)
+		self.selecteddevice=pickle.loads(model.get_value(iter,2))
+
+
+	def on_newdevlist_selected(self, newdevlist):
+		(model, iter) = newdevlist.get_selected()
+		if not iter:
+			self.newdevicebutton.set_sensitive(False)
+			return
+		self.newdevicebutton.set_sensitive(True)
+		self.selectednewdevice=pickle.loads(model.get_value(iter,4))
+
+
+	def on_adddevicebutton(self, *args):
+		self.__load_devices()
+		self.adddevicewindow.show()
+
+	def on_removedevicebutton(self, *args):
+		self.remove_dev(self.selecteddevice)
+
+
+	def on_adduserbutton(self, *args):
+		if len(self.devices) < 1:
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_WARNING,
+					gtk.BUTTONS_OK,
+					_("No devices registered.\n\nPlease register at least one device.") )
+			d.run()
+			d.destroy()
+			return
+		valuelist = gtk.ListStore(str, str)
+		for user in get_local_users():
+			valuelist.append( [ "%s - %s"%(user['name'], user['id']), user['name']] )
+			self.combouser.set_model(valuelist)
+		if self.combouser.__first:
+			self.combouser.set_text_column(0)
+			self.combouser.__first=False
+		model=self.combouser.get_model()
+		
+		
+		if self.selecteddevice is None:
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_WARNING,
+					gtk.BUTTONS_OK,
+					_("No device selected.\n\nPlease select a device from left list.") )
+			d.run()
+			d.destroy()
+			return
+		
+		self.txtselecteddevice.set_text(self.selecteddevice['name'])
+		
+		self.adduserwindow.show()
+
+	def on_removeuserbutton(self, *args):
+		user = self.selecteduser
+		self.remove_user_device( user['device'] )
+
+	def on_newdevicebutton(self, *args):
+		if len(self.selectednewdevice['volumes']) > 1:
+			self.labelvolumes.show()
+			self.boxvolumes.show()
+			valuelist = gtk.ListStore(str, str)
+			for value in self.selectednewdevice['volumes']:
+				valuelist.append( [ "%s - %s"%(value['device'], value['uuid']), value['uuid']] )
+				self.combovolumes.set_model(valuelist)
+			if self.combovolumes.__first:
+				self.combovolumes.set_text_column(0)
+				self.combovolumes.__first=False
+			model=self.combovolumes.get_model()
+			self.volumeswindow.show() 
+		elif len(self.selectednewdevice['volumes']) == 1:
+			self.labelvolumes.hide()
+			self.combovolumes.hide()
+			self.boxvolumes.show()
+			self.volumeswindow.show()
+		
+
+	def on_newcancelbutton(self, *args):
+		self.adddevicewindow.hide()
+
+	def on_reloaddevicebutton(self, *args):
+		self.__load_devices()
+
+	def on_volumeokbutton(self, *args):
+		if self.nameentry.get_text() == '':
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_WARNING,
+					gtk.BUTTONS_OK,
+					_("No name, please give a name.") )
+			d.run()
+			d.destroy()
+			return
+		if len(self.selectednewdevice['volumes']) == 1:
+			volume_uuid=self.selectednewdevice['volumes'][0]['uuid']
+		if len(self.selectednewdevice['volumes']) > 1:
+			selvol=self.combovolumes.get_active()
+			model=self.combovolumes.get_model()
+			volume_uuid=model[selvol][1]# get UUID
+
+		self.selectednewdevice['volume_uuid']=volume_uuid
+		self.selectednewdevice['name']=self.nameentry.get_text()
+		self.nameentry.set_text('')
+		self.volumeswindow.hide()
+		if len(self.selectednewdevice['volumes']) > 1:
+			model.clear()
+		self.adddevicewindow.hide()
+		self.selectednewdevice.pop('volumes')
+		self.save_new_device(self.selectednewdevice)
+
+	def on_volumecancelbutton(self, *args):
+		print args
+
+	def on_newuserbuttoncancel(self, *args):
+		self.adduserwindow.hide()
+
+	def on_newuserbuttonok(self, *args):
+		for user in self.users:
+			if user['device'] == self.selecteddevice['name']:
+				d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_WARNING,
+					gtk.BUTTONS_OK,
+					_("Device is already registered by user '%s'.") %user['user'] )
+				d.run()
+				d.destroy()
+				return
+		user=self.combouser.get_active()
+		model=self.combouser.get_model()
+		username=model[user][1]
+		self.save_user_device(username, self.selecteddevice['name'])
+		self.adduserwindow.hide()
+
+	def run(self):
+		print_debug("run()")
+		gobject.MainLoop().run()
+
+	def quitapp(self, *args):
+		sys.exit(0)
+
+class Device:
+	def __init__(self, udi):
+		self.__udi = udi
+		deviceObj = bus.get_object('org.freedesktop.Hal', udi)
+		deviceProperties = deviceObj.GetAllProperties(
+				dbus_interface = 'org.freedesktop.Hal.Device')
+		if deviceProperties['storage.removable'] != 1:
+			raise Exception, 'Not a removable device'
+		self.vendor = None
+		self.product = None
+		#for m in deviceProperties:
+		#	print "  => ", m
+		if deviceProperties.has_key('info.vendor'):
+			self.vendor = deviceProperties['info.vendor']
+		if deviceProperties.has_key('storage.model'):
+			self.product = deviceProperties['storage.model']
+		self.serialNumber = deviceProperties['storage.serial']
+		if len(self.volumes()) < 1:
+			raise Exception, 'Device does not contain any volume'
+
+	def volumes(self):
+		vols = []
+		for volume in halManager.FindDeviceByCapability('volume'):
+			deviceObj = bus.get_object('org.freedesktop.Hal', volume)
+			deviceProperties = deviceObj.GetAllProperties(
+					dbus_interface = 'org.freedesktop.Hal.Device')
+			if deviceProperties['info.parent'] != self.__udi:
+				continue
+			if deviceProperties['volume.is_partition'] != True:
+				continue
+			vols.append({'uuid' : str(deviceProperties['volume.uuid']),
+						'device' : str(deviceProperties['block.device']) })
+		return vols
+
+	def __repr__(self):
+		if self.product is not None:
+			return "%s %s (%s)" % (self.vendor, self.product, self.serialNumber)
+		return self.serialNumber
+
+	def get(self):
+		return {'vendor':str(self.vendor), 'model':str(self.product), 'serial':str(self.serialNumber), 'volumes':self.volumes(), 'udi':str(self.__udi) }
+
+
+def load_local_devices():
+	devices = []
+	for udi in halManager.FindDeviceByCapability('storage'):
+		try:
+			#if options['verbose']:
+			#	print 'Inspecting %s' % udi
+			devices.append(Device(udi).get())
+		except Exception, ex:
+			#if options['verbose']:
+			#	print "\tInvalid: %s" % ex
+			pass
+		#else:
+		#	if options['verbose']:
+		#		print "\tValid"
+
+	if len(devices) == 0:
+		print 'No devices detected.'
+	
+	return devices
+
+class TcosRemote(object):
+	def __init__(self):
+		import tcosmonitor
+		if options['verbose']:
+			tcosmonitor.shared.debug=True
+		self.name="pamusb-conf-gui"
+		self.config=tcosmonitor.TcosConf.TcosConf(self, openfile=False)
+		self.xmlrpc=tcosmonitor.TcosXmlRpc.TcosXmlRpc(self)
+		self.common=tcosmonitor.TcosCommon.TcosCommon(self)
+
+		self.xauth=tcosmonitor.TcosXauth.TcosXauth(self)
+		self.xauth.init_standalone()
+		
+		if not self.xauth.test_auth():
+			print "pamusb-conf-gui: ERROR: Xauth cookie don't match"
+			d = gtk.MessageDialog(None,
+					gtk.DIALOG_MODAL |
+					gtk.DIALOG_DESTROY_WITH_PARENT,
+					gtk.MESSAGE_ERROR,
+					gtk.BUTTONS_OK,
+					_("ERROR: Remote Xauth cookie don't match") )
+			d.run()
+			d.destroy()
+			sys.exit(1)
+
+		self.xmlrpc.newhost(options['remoteHost'])
+
+	def __parse__(self, dev):
+		newdev={'device': None, 'model': None, 'vendor': None, 'uuid': None, 'serial': None}
+		for comp in dev:
+			if comp.startswith("MODEL="):
+				newdev['model']=comp.replace('MODEL=', '')
+			elif comp.startswith("UUID="):
+				newdev['uuid']=comp.replace('UUID=', '')
+			elif comp.startswith("VENDOR="):
+				newdev['vendor']=comp.replace('VENDOR=', '')
+			elif comp.startswith("SERIAL="):
+				newdev['serial']=comp.replace('SERIAL=', '')
+			elif comp.startswith("DEVICE="):
+				newdev['device']=comp.replace('DEVICE=', '')
+		return newdev
+
+	def get_devices(self):
+		devices = []
+		if not self.xmlrpc.connected:
+			return []
+		try:
+			result=self.xmlrpc.tc.tcos.pamusb("readdevices", "", self.xauth.get_cookie(), options['remoteHost'])
+		except Exception, err:
+			print_debug( "Exception loading remote devices: %s" % err)
+			return []
+		if result == '':
+			return []
+		tmp=result.split('|')
+		for dev in tmp:
+			add=True
+			if dev == '':
+				continue
+			a=self.__parse__(dev.split('#'))
+			# ['UUID=C0C3-B657', 'MODEL=Flash_Disk', 'VENDOR=ORP', 'SERIAL=ORP_Flash_Disk_293424206251-0:0']
+			# {'model': 'Flash Disk', 'udi': '/org/freedesktop/Hal/devices/storage_serial_ORP_Flash_Disk_293424206251_0_0', 'vendor': 'ORP', 'serial': 'ORP_Flash_Disk_293424206251-0:0', 'volumes': [{'device': '/dev/sdd1', 'uuid': 'C0C3-B657'}]}
+			for i in range(len(devices)):
+				if a['serial'] == devices[i]['serial']:
+					devices[i]['volumes'].append( {'device':a['device'], 'uuid':a['uuid']} )
+					add=False
+					continue
+			if add:
+				newdev={'model':a['model'], 
+					'vendor':a['vendor'], 
+					'serial': a['serial'], 
+					'volumes':[ {	'device':a['device'], 
+									'uuid':a['uuid']
+								}
+							]
+					}
+				devices.append(newdev)
+		return devices
+
+def load_remote_devices():
+	remote=TcosRemote()
+	return remote.get_devices()
+
+
+def get_local_users():
+	users=[]
+	for user in pwd.getpwall():
+		if user[2] < 1000 or user[2] > 35000: continue
+		users.append( {'name':user[0], 'id':user[2], 'home': user[5]})
+	return users
+
+def listOptions(question, options, autodetect = True):
+	if autodetect == True and len(options) == 1:
+		print question
+		print "* Using \"%s\" (only option)" % options[0]
+		print
+		return 0
+
+	while True:
+		try:
+			print question
+			for i in range(len(options)):
+				print "%d) %s" % (i, options[i])
+			print
+			sys.stdout.write('[%s-%s]: ' % (0, len(options) - 1))
+			optionId = int(sys.stdin.readline())
+			print
+			if optionId not in range(len(options)):
+				raise Exception
+			return optionId
+		except KeyboardInterrupt: sys.exit()
+		except Exception: pass
+		else: break
+
+def writeConf(options, doc):
+	try:
+		f = open(options['configFile'], 'w')
+		doc.writexml(f)
+		f.close()
+	except Exception, err:
+		print 'Unable to save %s: %s' % (options['configFile'], err)
+		return False
+	else:
+		print_debug( 'writeConf() saved.')
+	return True
+
+def shouldSave(options, items):
+	print "\n".join(["%s\t\t: %s" % item for item in items])
+	print
+	print 'Save to %s ?' % options['configFile']
+	sys.stdout.write('[Y/n] ')
+	response = sys.stdin.readline().strip()
+	if len(response) > 0 and response.lower() != 'y':
+		sys.exit(1)
+
+def prettifyElement(element):
+	tmp = minidom.parseString(element.toprettyxml())
+	return tmp.lastChild
+
+#def addUser(options):
+#	try:
+#		doc = minidom.parse(options['configFile'])
+#	except Exception, err:
+#		print 'Unable to read %s: %s' % (options['configFile'], err)
+#		sys.exit(1)
+#	devSection = doc.getElementsByTagName('devices')
+#	if len(devSection) == 0:
+#		print 'Malformed configuration file: No <devices> section found.'
+#		sys.exit(1)
+#	devicesObj = devSection[0].getElementsByTagName('device')
+#	if len(devicesObj) == 0:
+#		print 'No devices found.'
+#		print 'You must add a device (--add-device) before adding users'
+#		sys.exit(1)
+
+#	devices = []
+#	for device in devicesObj:
+#		devices.append(device.getAttribute('id'))
+#	device = devices[listOptions("Which device would you like to use for authentication ?",
+#		devices)]
+
+#	shouldSave(options, [
+#		('User', options['userName']),
+#		('Device', device)
+#		])
+
+#	users = doc.getElementsByTagName('users')
+#	user = doc.createElement('user')
+#	user.attributes['id'] = options['userName']
+#	e = doc.createElement('device')
+#	t = doc.createTextNode(device)
+#	e.appendChild(t)
+#	user.appendChild(e)
+#	users[0].appendChild(prettifyElement(user))
+#	writeConf(options, doc)
+
+#def addDevice(options):
+#	devices = []
+
+#	for udi in halManager.FindDeviceByCapability('storage'):
+#		try:
+#			if options['verbose']:
+#				print 'Inspecting %s' % udi
+#			devices.append(Device(udi))
+#		except Exception, ex:
+#			if options['verbose']:
+#				print "\tInvalid: %s" % ex
+#			pass
+#		else:
+#			if options['verbose']:
+#				print "\tValid"
+
+#	if len(devices) == 0:
+#		print 'No devices detected.'
+#		sys.exit()
+#	device = devices[listOptions("Please select the device you wish to add.", devices)]
+
+#	volumes = device.volumes()
+#	volume = volumes[listOptions("Which volume would you like to use for " \
+#			"storing data ?",
+#			["%s (UUID: %s)" % (volume['device'],
+#				volume['uuid'] or "<UNDEFINED>")
+#				for volume in volumes]
+#			)]
+
+#	if volume['uuid'] == '':
+#		print 'WARNING: No UUID detected for device %s. One time pads will be disabled.' % volume['device']
+
+#	shouldSave(options, [
+#		('Name', options['deviceName']),
+#		('Vendor', device.vendor or "Unknown"),
+#		('Model', device.product or "Unknown"),
+#		('Serial', device.serialNumber),
+#		('UUID', volume['uuid'] or "Unknown")
+#		])
+
+#	try:
+#		doc = minidom.parse(options['configFile'])
+#	except Exception, err:
+#		print 'Unable to read %s: %s' % (options['configFile'], err)
+#		sys.exit(1)
+
+#	devs = doc.getElementsByTagName('devices')
+#	dev = doc.createElement('device')
+#	dev.attributes['id'] = options['deviceName']
+
+#	for name, value in (('vendor', device.vendor),
+#			('model', device.product),
+#			('serial', device.serialNumber),
+#			('volume_uuid', volume['uuid'])):
+#		if value is None or value == '':
+#			continue
+#		e = doc.createElement(name)
+#		t = doc.createTextNode(value)
+#		e.appendChild(t)
+#		dev.appendChild(e)
+
+#	# Disable one time pads if there's no device UUID
+#	if volume['uuid'] == '':
+#		e = doc.createElement('option')
+#		e.setAttribute('name', 'one_time_pad')
+#		e.appendChild(doc.createTextNode('false'))
+#		dev.appendChild(e)
+
+#	devs[0].appendChild(prettifyElement(dev))
+#	writeConf(options, doc)
+
+def usage():
+	print 'Usage: %s [--help] [--verbose|--debug] [--config=path]' % os.path.basename(__file__)
+	sys.exit(1)
+
+import getopt
+
+try:
+	opts, args = getopt.getopt(sys.argv[1:], "hvd:nu:c:",
+			["help", "verbose", "debug", "config=", "remote="])
+except getopt.GetoptError:
+	usage()
+
+if len(args) != 0:
+	usage()
+
+options = { 'deviceName' : None, 'userName' : None,
+		'configFile' : '/etc/pamusb.conf', 'verbose' : False,
+		'remoteHost': None }
+
+for o, a in opts:
+	if o in ("-h", "--help"):
+		usage()
+	if o in ("-v", "--verbose") or o == "--debug":
+		options['verbose'] = True
+	if o in ("-c", "--config"):
+		options['configFile'] = a
+	if o in ("-c", "--remote"):
+		options['remoteHost'] = a
+
+
+if os.environ.has_key("DISPLAY"):
+	tmp=os.environ["DISPLAY"].split(":")[0]
+	if tmp != "":
+		print "pamusb-conf-gui\n\tDetected remote DISPLAY.\n\tSetting options[remoteHost] to '%s'" % tmp
+		options['remoteHost']= tmp
+
+gui=PamUSBGui()
+try:
+	gui.run()
+except KeyboardInterrupt:
+	pass
+	sys.exit(1)
+sys.exit(0)
+
+#if options['deviceName'] is not None and options['userName'] is not None:
+#	print 'You cannot use both --add-user and --add-device'
+#	usage()
+
+#if options['deviceName'] is None and options['userName'] is None:
+#	usage()
+
+#if options['deviceName'] is not None:
+#	bus = dbus.SystemBus()
+#	halService = bus.get_object('org.freedesktop.Hal',
+#			'/org/freedesktop/Hal/Manager')
+#	halManager = dbus.Interface(halService, 'org.freedesktop.Hal.Manager')
+#	try:
+#		addDevice(options)
+#	except KeyboardInterrupt:
+#		sys.exit(1)
+
+#if options['userName'] is not None:
+#	try:
+#		addUser(options)
+#	except KeyboardInterrupt:
+#		sys.exit(1)
+

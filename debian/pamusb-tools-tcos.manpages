@@ -1,2 +1,3 @@
 debian/pamusb-agent.1
 debian/pamusb-conf.1
+tools/pamusb-conf-gui.1
