@@ -22,7 +22,7 @@ Description: PAM module for authentication with removable USB block devices
 
 Package: pamusb-tools-tcos
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-celementtree, python-gobject, python-dbus, libpam-usb-tcos, hal, dbus
+Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-celementtree, python-gobject, python-dbus, libpam-usb-tcos, hal, dbus, tcosmonitor-common
 Provides: pamusb-tools
 Replaces: pamusb-tools
 Conflicts: pamusb-tools
