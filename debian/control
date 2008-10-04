@@ -22,7 +22,9 @@ Description: PAM module for authentication with removable USB block devices
 
 Package: pamusb-tools-tcos
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-celementtree, python-gobject, python-dbus, libpam-usb-tcos, hal, dbus, tcosmonitor-common
+Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-celementtree, 
+         python-gobject, python-dbus, libpam-usb-tcos, hal, dbus, tcosmonitor-common,
+         python-gtk2, python-glade2
 Provides: pamusb-tools
 Replaces: pamusb-tools
 Conflicts: pamusb-tools
@@ -31,5 +33,5 @@ Description: helper tools for the pam-usb-tcos module
  including pamusb-agent, pamusb-conf and pamusb-check, which help users
  to manage the XML-based configuration file and to test their settings.
  .
- This package is a fork of pamusb-tools-tcos with remote USB support 
+ This package is a fork of pamusb-tools with remote USB support 
  for thin clients (TCOS).

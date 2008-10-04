@@ -5,8 +5,9 @@ pam-usb-tcos (0.4.2.2tcos-1) unstable; urgency=low
   * tools/pamusb-conf-gui tools/pamusb-conf-gui.glade:
     - New Python GTK+ way to configure pam-usb
   * Add tcosmonitor-common as pamusb-tools-tcos Depends
+  * Add python-gtk2 and python-glade2 as Depends
 
- -- Mario Izquierdo (mariodebian) <mariodebian@gmail.com>  Sat, 04 Oct 2008 12:25:59 +0200
+ -- Mario Izquierdo (mariodebian) <mariodebian@gmail.com>  Sat, 04 Oct 2008 12:45:36 +0200
 
 pam-usb-tcos (0.4.2.1tcos-1) unstable; urgency=low
 
