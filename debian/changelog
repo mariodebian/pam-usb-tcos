@@ -1,3 +1,10 @@
+pam-usb-tcos (0.4.2.2tcos-2) unstable; urgency=low
+
+  * pamusb-conf-gui:
+    - Add translation pt_BR (thanks Aecio Pires)
+
+ -- Mario Izquierdo (mariodebian) <mariodebian@gmail.com>  Tue, 13 Jan 2009 11:50:08 +0100
+
 pam-usb-tcos (0.4.2.2tcos-1) unstable; urgency=low
 
   * src/remote.h:

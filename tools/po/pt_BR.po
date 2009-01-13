@@ -1,0 +1,164 @@
+# translation of pam-usb-tcos.
+# Copyright (C) 2009 THE pam-usb-tcos'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the pam-usb-tcos package.
+# <>, 2009.
+# , fuzzy
+#  <>, 2009.
+# 
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: pam-usb-tcos 0.4.2.2tcos-1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-10-02 19:34+0200\n"
+"PO-Revision-Date: 2009-01-12 17:22-0300\n"
+"Last-Translator: Aécio dos Santos Pires <aeciopires@gmail.com>\n"
+"Language-Team: Portuguese/Brazil\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit"
+
+#: ../pamusb-conf-gui.py:113
+msgid "Username"
+msgstr "Usuário"
+
+#: ../pamusb-conf-gui.py:119
+msgid "Attached device"
+msgstr "Dispositivo conectado"
+
+#: ../pamusb-conf-gui.py:136
+msgid "Device Name"
+msgstr "Nome do dispositivo"
+
+#: ../pamusb-conf-gui.py:142
+msgid "Volume UUID"
+msgstr "Volume UUID"
+
+#: ../pamusb-conf-gui.py:159
+msgid "Model"
+msgstr "Modelo"
+
+#: ../pamusb-conf-gui.py:165
+msgid "Vendor"
+msgstr "Fabricante"
+
+#: ../pamusb-conf-gui.py:171
+msgid "Serial"
+msgstr "Serial"
+
+#: ../pamusb-conf-gui.py:177
+msgid "Volumes"
+msgstr "Volume"
+
+#: ../pamusb-conf-gui.py:319 ../pamusb-conf-gui.py:349
+#: ../pamusb-conf-gui.py:383 ../pamusb-conf-gui.py:411
+#, python-format
+msgid ""
+"Can't save to file '%s'.\n"
+"\n"
+"Are you root?"
+msgstr "Não foi possível salvar o arquivo '%s'.\n"
+"\n"
+"Você é root?"
+
+#: ../pamusb-conf-gui.py:488
+msgid ""
+"No devices registered.\n"
+"\n"
+"Please register at least one device."
+msgstr "Nenhum dispositivo foi cadastrado.\n"
+"\n"
+"Por favor cadastre pelo menos um dispositivo."
+
+#: ../pamusb-conf-gui.py:508
+msgid ""
+"No device selected.\n"
+"\n"
+"Please select a device from left list."
+msgstr "Nenhum dispositivo foi selecionado.\n"
+"\n"
+"Por favor selecione um dispositivo da lista."
+
+#: ../pamusb-conf-gui.py:558
+msgid "No name, please give a name."
+msgstr "Não há nenhum nome, por favor indique um nome."
+
+#: ../pamusb-conf-gui.glade:10
+msgid "PAM USB Configuration"
+msgstr "Configuração do PAM USB"
+
+#: ../pamusb-conf-gui.glade:33
+msgid "<span size=\"x-large\">Configure PAM USB user and devices</span>"
+msgstr "<span size=\"x-large\">Configure um usuário e um dispositivo PAM USB</span>"
+
+#: ../pamusb-conf-gui.glade:65
+msgid "<b>Devices</b>"
+msgstr "<b>Dispositivos</b>"
+
+#: ../pamusb-conf-gui.glade:90
+msgid "<b>Users</b>"
+msgstr "<b>Usuários</b>"
+
+#: ../pamusb-conf-gui.glade:264 ../pamusb-conf-gui.glade:438
+msgid "Add"
+msgstr "Adicionar"
+
+#: ../pamusb-conf-gui.glade:342 ../pamusb-conf-gui.glade:516
+msgid "Remove"
+msgstr "Remover"
+
+#: ../pamusb-conf-gui.glade:603
+msgid "Add device"
+msgstr "Adicionar dispositivo"
+
+#: ../pamusb-conf-gui.glade:626
+msgid "Avalaible devices"
+msgstr "Dispositivos disponíveis"
+
+#: ../pamusb-conf-gui.glade:729
+msgid "Reload devices"
+msgstr "Carregando dispositivos"
+
+#: ../pamusb-conf-gui.glade:807 ../pamusb-conf-gui.glade:1362
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: ../pamusb-conf-gui.glade:885 ../pamusb-conf-gui.glade:1440
+msgid "Select this device"
+msgstr "Selecionar este dispositivo"
+
+#: ../pamusb-conf-gui.glade:929
+msgid "More than one volume"
+msgstr "Mais do que um volume"
+
+#: ../pamusb-conf-gui.glade:952
+msgid "<b>To insert device to pam-usb, you need to put a unique name.</b>"
+msgstr "<b>Para inserir um dispositivo ao PAM-USB, você precisa informar um nome único.</b>"
+
+#: ../pamusb-conf-gui.glade:983
+msgid "Device name:"
+msgstr "Nome do dispositivo"
+
+#: ../pamusb-conf-gui.glade:1034
+msgid ""
+"Device have more than one volumes (partitions).\n"
+"Please choose one:"
+msgstr "Este dispositivo tem mais de um volume (partição).\n"
+"Por favor escolha uma:"
+
+#: ../pamusb-conf-gui.glade:1147
+msgid "Add user"
+msgstr "Adicionar usuário"
+
+#: ../pamusb-conf-gui.glade:1170
+msgid "Select a system user and a register device"
+msgstr "Selecione um usuário e um dispositivo cadastrados no sistema"
+
+#: ../pamusb-conf-gui.glade:1201
+msgid "Chooser device"
+msgstr "Escolha um dispositivo"
+
+#: ../pamusb-conf-gui.glade:1259
+msgid "Chooser user"
+msgstr "Escolha um usuário"
+
