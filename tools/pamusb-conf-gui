@@ -274,7 +274,7 @@ class PamUSBGui(object):
 		if options['remoteHost'] is not None:
 			devices=load_remote_devices()
 		else:
-			load_local_devices()
+			devices=load_local_devices()
 		for dev in devices:
 			self.add_item_to_newdevlist(dev)
 	
