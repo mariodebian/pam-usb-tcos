@@ -5,6 +5,8 @@ Maintainer: Mario Izquierdo (mariodebian) <mariodebian@gmail.com>
 Build-Depends: debhelper (>= 5), libpam0g-dev, libdbus-1-dev, libhal-storage-dev, libxml2-dev, pkg-config, libxmlrpc-c3-dev, libxau-dev, libx11-dev, libcurl4-openssl-dev
 Standards-Version: 3.8.0
 Homepage: http://www.pamusb.org/
+Vcs-Git: http://tcosproject.org/git/pam-usb-tcos.git
+Vcs-Browser: http://tcosproject.org/cgit/cgit.cgi/pam-usb-tcos.git/
 
 Package: libpam-usb-tcos
 Architecture: any

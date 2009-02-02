@@ -1,3 +1,9 @@
+pam-usb-tcos (0.4.2.2tcos-4) unstable; urgency=low
+
+  * Add Vcs- debian/control headers to new GIT repos
+
+ -- Mario Izquierdo (mariodebian) <mariodebian@gmail.com>  Mon, 02 Feb 2009 01:24:04 +0100
+
 pam-usb-tcos (0.4.2.2tcos-3) unstable; urgency=low
 
   * tools/pamusb-conf-gui
