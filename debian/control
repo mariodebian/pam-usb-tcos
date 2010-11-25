@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 5), libpam0g-dev, libdbus-1-dev, libhal-storage-dev
 Standards-Version: 3.8.0
 Homepage: http://www.pamusb.org/
 Vcs-Git: http://tcosproject.org/git/pam-usb-tcos.git
-Vcs-Browser: http://tcosproject.org/cgit/cgit.cgi/pam-usb-tcos.git/
+Vcs-Browser: http://tcosproject.org/cgit/pam-usb-tcos.git/
 
 Package: libpam-usb-tcos
 Architecture: any
